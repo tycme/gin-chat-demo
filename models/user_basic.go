@@ -1,5 +1,11 @@
 package models
 
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
+
 type UserBasic struct {
 	Identity  string `bson:"_id"`
 	Account   string `bson:"account"`
@@ -12,6 +18,16 @@ type UserBasic struct {
 	UpdateAt  int64  `bson:"updated_at"`
 }
 
-func CollectionName() string {
+func (UserBasic) CollectionName() string {
 	return "user_basic"
+}
+
+func GetUserBasicByAccountPassword(account, password string) (*UserBasic, error) {
+	ub := &UserBasic{}
+	err := MongoDB.Collection(UserBasic{}.CollectionName()).
+		FindOne(context.Background(), bson.D{
+			{"account", account},
+			{"password", password},
+		}).Decode(ub)
+	return ub, err
 }
