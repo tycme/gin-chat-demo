@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserBasic struct {
@@ -28,6 +29,15 @@ func GetUserBasicByAccountPassword(account, password string) (*UserBasic, error)
 		FindOne(context.Background(), bson.D{
 			{"account", account},
 			{"password", password},
+		}).Decode(ub)
+	return ub, err
+}
+
+func GetUserBasicByIdentity(identity primitive.ObjectID) (*UserBasic, error) {
+	ub := &UserBasic{}
+	err := MongoDB.Collection(UserBasic{}.CollectionName()).
+		FindOne(context.Background(), bson.D{
+			{"_id", identity},
 		}).Decode(ub)
 	return ub, err
 }
