@@ -64,3 +64,39 @@ func UserDetail(c *gin.Context) {
 		"data": userBasic,
 	})
 }
+
+func SendCode(c *gin.Context) {
+	email := c.PostForm("email")
+	cnt, err := models.GetUserBasicCountByEmail(email)
+	if err != nil {
+		log.Printf("[DB ERROR: %v\n]", err)
+		return
+	}
+	if cnt > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "该邮箱已被注册",
+		})
+		return
+	}
+	err = helper.SendCode(email, "6666")
+	if err != nil {
+		log.Printf("[ERROR: %v]\n", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误",
+		})
+		return
+	}
+	if email == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "email不能为空",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "验证码发送成功",
+	})
+}

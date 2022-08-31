@@ -2,9 +2,13 @@ package helper
 
 import (
 	"crypto/md5"
+	"crypto/tls"
 	"fmt"
+	"net/smtp"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jordan-wright/email"
+	"github.com/tycme/gin-chat/define"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -50,4 +54,16 @@ func AnalyseToken(tokenString string) (*UserClaims, error) {
 		return nil, fmt.Errorf("analyse Token error: %v", err)
 	}
 	return userClaims, nil
+}
+
+func SendCode(toUserEmail, code string) error {
+	e := email.NewEmail()
+	e.From = "Get <honort@163.com>"
+	e.To = []string{toUserEmail}
+	e.Subject = "验证码已发送, 请查收"
+	e.HTML = []byte("您的验证码： <b>" + code + "<b>")
+	return e.SendWithTLS("smtp.163.com:465",
+		smtp.PlainAuth("", "honort@163.com", define.MailPassword, "smtp.163.com"),
+		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.163.com"},
+	)
 }
