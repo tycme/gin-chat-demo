@@ -15,5 +15,7 @@ func Router() *gin.Engine {
 	auth := r.Group("/u", middlewares.AuthCheck())
 	auth.GET("/user/detail", service.UserDetail)
 
+	auth.GET("/websocket/message", service.WebsocketMessage)
+
 	return r
 }
