@@ -14,8 +14,8 @@ type UserBasic struct {
 	Sex       int    `bson:"sex"`
 	Email     string `bson:"email"`
 	Avatar    string `bson:"avatar"`
-	CreatedAt int64  `bson:"created_at"`
-	UpdateAt  int64  `bson:"updated_at"`
+	CreatedAt int64  `bson:"create_at"`
+	UpdateAt  int64  `bson:"update_at"`
 }
 
 func (UserBasic) CollectionName() string {

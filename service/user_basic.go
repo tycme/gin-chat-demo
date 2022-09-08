@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,9 +11,7 @@ import (
 
 func Login(c *gin.Context) {
 	account := c.PostForm("account")
-	fmt.Println("account: ", account)
 	password := c.PostForm("password")
-	fmt.Println("password: ", password)
 	if account == "" || password == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
