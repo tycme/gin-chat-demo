@@ -3,7 +3,8 @@
 ## 用户表
 ```json
 {
-    "account": "账号",
+    "identity": "用户唯一标识",
+	"account": "账号",
     "password": "密码",
     "nickname": "昵称",
     "sex": 1, // 0-未知 1-男 2-女
