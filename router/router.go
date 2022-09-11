@@ -16,6 +16,6 @@ func Router() *gin.Engine {
 	auth.GET("/user/detail", service.UserDetail)
 
 	auth.GET("/websocket/message", service.WebsocketMessage)
-
+	auth.GET("/chat/list", service.ChatList)
 	return r
 }
