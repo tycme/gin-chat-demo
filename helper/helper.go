@@ -4,11 +4,15 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"fmt"
+	"math/rand"
 	"net/smtp"
+	"strconv"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jordan-wright/email"
 	"github.com/tycme/gin-chat/define"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 )
 
 type UserClaims struct {
@@ -61,4 +65,21 @@ func SendCode(toUserEmail, code string) error {
 		smtp.PlainAuth("", "honort@163.com", define.MailPassword, "smtp.163.com"),
 		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.163.com"},
 	)
+}
+
+func GetCode() string {
+	rand.Seed(time.Now().Unix())
+	res := ""
+	for i := 0; i < 6; i++ {
+		res += strconv.Itoa(rand.Intn(10))
+	}
+	return res
+}
+
+func GetUuid() string {
+	u, err := uuid.New()
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", u)
 }

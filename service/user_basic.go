@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tycme/gin-chat/define"
 	"github.com/tycme/gin-chat/helper"
 	"github.com/tycme/gin-chat/models"
 )
@@ -76,7 +79,8 @@ func SendCode(c *gin.Context) {
 		})
 		return
 	}
-	err = helper.SendCode(email, "6666")
+	code := helper.GetCode()
+	err = helper.SendCode(email, code)
 	if err != nil {
 		log.Printf("[ERROR: %v]\n", err)
 		c.JSON(http.StatusOK, gin.H{
@@ -92,8 +96,87 @@ func SendCode(c *gin.Context) {
 		})
 		return
 	}
+	if err := models.RDB.Set(context.Background(), define.RegisterPrefix+email, code, time.Second*time.Duration(define.ExpireTime)).Err(); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误",
+		})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"msg":  "验证码发送成功",
+	})
+}
+
+func Regiseter(c *gin.Context) {
+	code := c.PostForm("code")
+	email := c.PostForm("email")
+	account := c.PostForm("acconut")
+	password := c.PostForm("password")
+	if code == "" || email == "" || account == "" || password == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+		return
+	}
+	// 判断账号是否唯一
+	cnt, err := models.GetUserBasicCountByEmail(email)
+	if err != nil {
+		log.Printf("[ERROR] : %v\n", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误",
+		})
+		return
+	}
+	if cnt > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "账号已被注册",
+		})
+		return
+	}
+	// 验证码是否正确
+	r, err := models.RDB.Get(context.Background(), define.RegisterPrefix+email).Result()
+	if err != nil || r != code {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "验证码不正确",
+		})
+		return
+	}
+	ub := &models.UserBasic{
+		Identity:  helper.GetUuid(),
+		Account:   account,
+		Password:  helper.GetMd5(password),
+		Nickname:  "",
+		Sex:       0,
+		Email:     email,
+		CreatedAt: time.Now().Unix(),
+		UpdateAt:  time.Now().Unix(),
+	}
+	err = models.InsertOneUserBasic(ub)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误",
+		})
+		return
+	}
+	token, err := helper.GenerateToken(ub.Identity, ub.Email)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统错误：" + err.Error(),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "登陆成功",
+		"data": gin.H{
+			"token": token,
+		},
 	})
 }

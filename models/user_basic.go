@@ -22,6 +22,12 @@ func (UserBasic) CollectionName() string {
 	return "user_basic"
 }
 
+func InsertOneUserBasic(ub *UserBasic) error {
+	_, err := MongoDB.Collection(UserBasic{}.CollectionName()).
+		InsertOne(context.Background(), ub)
+	return err
+}
+
 func GetUserBasicByAccountPassword(account, password string) (*UserBasic, error) {
 	ub := &UserBasic{}
 	err := MongoDB.Collection(UserBasic{}.CollectionName()).
@@ -44,6 +50,13 @@ func GetUserBasicByIdentity(identity string) (*UserBasic, error) {
 func GetUserBasicCountByEmail(email string) (int64, error) {
 	return MongoDB.Collection(UserBasic{}.CollectionName()).
 		CountDocuments(context.Background(), bson.D{
-			{"eamil", email},
+			{"email", email},
+		})
+}
+
+func GetUserBasicCountByAccount(account string) (int64, error) {
+	return MongoDB.Collection(UserBasic{}.CollectionName()).
+		CountDocuments(context.Background(), bson.D{
+			{"account", account},
 		})
 }
