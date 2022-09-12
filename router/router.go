@@ -21,5 +21,6 @@ func Router() *gin.Engine {
 	auth.GET("/chat/list", service.ChatList)
 
 	auth.POST("/user/add", service.UserAdd)
+	auth.DELETE("/user/delete", service.Delete)
 	return r
 }

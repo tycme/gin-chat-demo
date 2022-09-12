@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -261,14 +262,29 @@ func UserAdd(c *gin.Context) {
 		return
 	}
 	// 保存用户与房间关联关系
-	ur := models.UserRoom{
-		UserIdentity: ub.Identity,
-		RoomIdentity: uc.Identity,
+	ur := &models.UserRoom{
+		UserIdentity: uc.Identity,
+		RoomIdentity: rb.Identity,
 		RoomType:     1,
 		CreatedAt:    time.Now().Unix(),
-		UpdateAt:     time.Now().Unix(),
+		UpdatedAt:    time.Now().Unix(),
 	}
-	if err := models.InsertOneUserRoom(&ur); err != nil {
+	if err := models.InsertOneUserRoom(ur); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "数据库异常",
+		})
+		return
+	}
+	ur = &models.UserRoom{
+		UserIdentity: ub.Identity,
+		RoomIdentity: rb.Identity,
+		RoomType:     1,
+		CreatedAt:    time.Now().Unix(),
+		UpdatedAt:    time.Now().Unix(),
+	}
+	if err = models.InsertOneUserRoom(ur); err != nil {
+		log.Printf("[DB ERROR]:%v\n", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "数据库异常",
@@ -279,4 +295,47 @@ func UserAdd(c *gin.Context) {
 		"code": 200,
 		"msg":  "好友添加成功",
 	})
+}
+
+func Delete(c *gin.Context) {
+	identity := c.Query("identity")
+	if identity == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+	}
+	// 获取房间identity
+	uc := c.MustGet("user_claims").(*helper.UserClaims)
+	fmt.Println("uc.Identity: ", uc.Identity)
+	fmt.Println("identity: ", identity)
+	roomIdentity := models.GetUserRoomIdentity(uc.Identity, identity)
+	if roomIdentity == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "不为好友关系, 无法删除",
+		})
+		return
+	}
+	// 删除user_room关系
+	if err := models.DeleteUserRoom(roomIdentity); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统异常",
+		})
+		return
+	}
+	// 删除room_basic
+	if err := models.DeleteRoomBasic(roomIdentity); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "系统异常",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "删除成功",
+	})
+	return
 }
