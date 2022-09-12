@@ -180,3 +180,42 @@ func Regiseter(c *gin.Context) {
 		},
 	})
 }
+
+type UserQueryResult struct {
+	Nickname string `json:"nickname"`
+	Sex      int    `bson:"sex"`
+	Email    string `bson:"email"`
+	Avatar   string `bson:"avatar"`
+	IsFriend bool   `json:"is_friend"`
+}
+
+func UserQuery(c *gin.Context) {
+	account := c.Query("account")
+	userBasic, err := models.GetUserBasicByAccount(account)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "数据查询异常",
+		})
+	}
+	if account == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+	}
+	uc, _ := c.MustGet("user_claims").(*helper.UserClaims)
+	isFriend := models.JudgeUserIsFriend(userBasic.Identity, uc.Identity)
+	uq := UserQueryResult{
+		Nickname: userBasic.Nickname,
+		Sex:      userBasic.Sex,
+		Email:    userBasic.Email,
+		Avatar:   userBasic.Avatar,
+		IsFriend: isFriend,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "数据加载成功",
+		"data": uq,
+	})
+}
