@@ -87,3 +87,9 @@ func JudgeUserIsFriend(u1, u2 string) bool {
 	}
 	return false
 }
+
+func InsertOneUserRoom(ur *UserRoom) error {
+	_, err := MongoDB.Collection(UserRoom{}.CollectionName()).
+		InsertOne(context.Background(), ur)
+	return err
+}
