@@ -180,3 +180,103 @@ func Regiseter(c *gin.Context) {
 		},
 	})
 }
+
+type UserQueryResult struct {
+	Nickname string `json:"nickname"`
+	Sex      int    `bson:"sex"`
+	Email    string `bson:"email"`
+	Avatar   string `bson:"avatar"`
+	IsFriend bool   `json:"is_friend"`
+}
+
+func UserQuery(c *gin.Context) {
+	account := c.Query("account")
+	userBasic, err := models.GetUserBasicByAccount(account)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "数据查询异常",
+		})
+	}
+	if account == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+	}
+	uc, _ := c.MustGet("user_claims").(*helper.UserClaims)
+	isFriend := models.JudgeUserIsFriend(userBasic.Identity, uc.Identity)
+	uq := UserQueryResult{
+		Nickname: userBasic.Nickname,
+		Sex:      userBasic.Sex,
+		Email:    userBasic.Email,
+		Avatar:   userBasic.Avatar,
+		IsFriend: isFriend,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "数据加载成功",
+		"data": uq,
+	})
+}
+
+func UserAdd(c *gin.Context) {
+	account := c.PostForm("account")
+	if account == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+		return
+	}
+	ub, err := models.GetUserBasicByAccount(account)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "没有该用户",
+		})
+		return
+	}
+	uc, _ := c.MustGet("user_claims").(*helper.UserClaims)
+	if models.JudgeUserIsFriend(uc.Identity, ub.Identity) {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "已经是好友,不可重复添加",
+		})
+		return
+	}
+	// 保存房间记录
+	rb := &models.RoomBasic{
+		Identity:     helper.GetUuid(),
+		UserIdentity: uc.Identity,
+		CreatedAt:    time.Now().Unix(),
+		UpdateAt:     time.Now().Unix(),
+	}
+	err = models.InsertOneRoomBasic(rb)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "数据查询异常",
+		})
+		return
+	}
+	// 保存用户与房间关联关系
+	ur := models.UserRoom{
+		UserIdentity: ub.Identity,
+		RoomIdentity: uc.Identity,
+		RoomType:     1,
+		CreatedAt:    time.Now().Unix(),
+		UpdateAt:     time.Now().Unix(),
+	}
+	if err := models.InsertOneUserRoom(&ur); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "数据库异常",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "好友添加成功",
+	})
+}
